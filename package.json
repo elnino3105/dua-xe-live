@@ -1,0 +1,14 @@
+{
+  "name": "dua-xe-live",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Game đua xe tương tác cho TikTok LIVE",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "three": "^0.187.0",
+    "tiktok-live-connector": "^2.5.0"
+  }
+}

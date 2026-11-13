@@ -1,0 +1,32 @@
+{
+  "port": 3000,
+  "eulerApiKey": "",
+  "joinKeyword": "1",
+  "laps": 2,
+  "lapLength": 1000,
+  "baseSpeed": 28,
+  "maxCars": 12,
+  "minCars": 6,
+  "lobbySeconds": 15,
+  "podiumSeconds": 10,
+  "maxRaceSeconds": 180,
+  "keepActivePlayers": true,
+  "maxSpeedMult": 2.8,
+  "maxEffectSeconds": 20,
+  "catchUpMax": 0.1,
+  "likeTurboSeconds": 0.15,
+  "focusMinCoins": 10,
+  "effects": {
+    "turbo":  { "label": "Tăng tốc",  "boost": 0.4, "seconds": 3 },
+    "super":  { "label": "Siêu tốc",  "boost": 0.8, "seconds": 4 },
+    "rocket": { "label": "Tên lửa",   "boost": 1.5, "seconds": 3 },
+    "storm":  { "label": "Giông bão", "slow": 0.4,  "seconds": 4 }
+  },
+  "gifts": [
+    { "name": "Rose",      "coins": 1,   "effect": "turbo" },
+    { "name": "Perfume",   "coins": 20,  "effect": "super" },
+    { "name": "Doughnut",  "coins": 30,  "effect": "rocket" },
+    { "name": "Money Gun", "coins": 500, "effect": "storm" }
+  ],
+  "bannedWords": ["địt", "lồn", "cặc", "đụ", "fuck", "sex"]
+}
