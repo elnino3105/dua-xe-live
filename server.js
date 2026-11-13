@@ -272,7 +272,9 @@ const server = http.createServer((req, res) => {
   if (req.method === 'POST') {
     // Chỉ nhận lệnh từ chính trang của game, không nhận từ trang web khác.
     const origin = req.headers.origin;
-    if (origin && !/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) { res.writeHead(403); return res.end(); }
+    const hosts = [req.headers.host, req.headers['x-forwarded-host']].filter(Boolean);
+    let from = ''; try { from = new URL(origin).host; } catch (e) {}
+    if (origin && !hosts.includes(from)) { res.writeHead(403); return res.end(); }
     return readJson(req, data => {
       if (url.pathname === '/api/event') handleEvent(data);
       else if (url.pathname === '/api/admin') adminAction(data);
@@ -306,7 +308,7 @@ setInterval(() => {
   for (const c of clients) c.write(msg);
 }, TICK * 1000);
 
-server.listen(cfg.port, '127.0.0.1', () => {
+server.listen(Number(process.env.PORT) || cfg.port, process.env.HOST || '127.0.0.1', () => {
   console.log('Màn hình game:    http://localhost:' + cfg.port);
   console.log('Bảng điều khiển:  http://localhost:' + cfg.port + '/admin');
   if (settings.tiktokUser) bridge.connect(settings.tiktokUser);

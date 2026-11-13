@@ -88,22 +88,22 @@ li button { padding: 2px 8px; font-size: 12px; }
 (() => {
   const $ = id => document.getElementById(id);
   const post = (url, data) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).catch(() => {});
-  const ev = data => post('/api/event', data);
+  const ev = data => post('api/event', data);
   const who = () => $('who').value.trim() || 'nguoi_xem_1';
   const PHASE = { lobby: 'Chờ người vào', countdown: 'Đếm ngược', race: 'Đang đua', podium: 'Trao giải' };
   let S = null, giftsBuilt = false;
   const NAMES = ['minh_anh', 'tuan.kiet', 'be_na', 'hoang99', 'linh_chi', 'khoa_pug', 'mit_uot', 'bao_ngoc', 'duc_tri', 'thao_my', 'long_vu', 'nhi_nhi', 'quan_ao', 'gia_huy', 'tram_anh'];
   const pick = a => a[Math.floor(Math.random() * a.length)];
 
-  $('bStart').onclick = () => post('/api/admin', { action: 'start' });
-  $('bEnd').onclick = () => post('/api/admin', { action: 'end' });
+  $('bStart').onclick = () => post('api/admin', { action: 'start' });
+  $('bEnd').onclick = () => post('api/admin', { action: 'end' });
   let armed = 0;
   $('bReset').onclick = e => { // bấm hai lần để xác nhận
-    if (Date.now() - armed < 3000) { post('/api/admin', { action: 'reset' }); e.target.textContent = 'Xóa hết người chơi'; armed = 0; }
+    if (Date.now() - armed < 3000) { post('api/admin', { action: 'reset' }); e.target.textContent = 'Xóa hết người chơi'; armed = 0; }
     else { armed = Date.now(); e.target.textContent = 'Bấm lần nữa để xóa'; setTimeout(() => { if (armed) { e.target.textContent = 'Xóa hết người chơi'; armed = 0; } }, 3000); }
   };
-  $('ttOn').onclick = () => post('/api/admin', { action: 'tiktok-connect', username: $('ttUser').value });
-  $('ttOff').onclick = () => post('/api/admin', { action: 'tiktok-disconnect' });
+  $('ttOn').onclick = () => post('api/admin', { action: 'tiktok-connect', username: $('ttUser').value });
+  $('ttOff').onclick = () => post('api/admin', { action: 'tiktok-disconnect' });
   $('sJoin').onclick = () => ev({ type: 'comment', user: who(), text: '1' });
   $('sLike').onclick = () => ev({ type: 'like', user: who(), count: 10 });
   $('sFollow').onclick = () => ev({ type: 'follow', user: who() });
@@ -118,7 +118,7 @@ li button { padding: 2px 8px; font-size: 12px; }
     else { const g = pick(S.gifts.slice(0, Math.random() < 0.85 ? 2 : 4)); ev({ type: 'gift', user: pick(real).id, gift: g.name, coins: g.coins, count: pick([1, 1, 1, 5, 10]) }); }
   }, 900);
 
-  const es = new EventSource('/api/stream');
+  const es = new EventSource('api/stream');
   es.onerror = () => { $('status').textContent = 'Mất kết nối với máy chủ game'; };
   let n = 0;
   es.onmessage = e => {
@@ -143,7 +143,7 @@ li button { padding: 2px 8px; font-size: 12px; }
       const sw = document.createElement('span'); sw.className = 'sw'; sw.style.background = c.color;
       const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = c.rank + '. ' + c.name + (c.bot ? ' (máy)' : '') + (c.fx.length ? ' · ' + c.fx.join(', ') : '');
       li.append(sw, nm);
-      if (!c.bot) { const k = document.createElement('button'); k.type = 'button'; k.textContent = 'Đuổi'; k.onclick = () => post('/api/admin', { action: 'kick', id: c.id }); li.appendChild(k); }
+      if (!c.bot) { const k = document.createElement('button'); k.type = 'button'; k.textContent = 'Đuổi'; k.onclick = () => post('api/admin', { action: 'kick', id: c.id }); li.appendChild(k); }
       ul.appendChild(li);
     }
     const fd = $('feed'); fd.textContent = '';

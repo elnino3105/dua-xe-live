@@ -87,7 +87,7 @@ h2 { margin: 0 0 10px; font-size: 30px; font-weight: 800; letter-spacing: .06em;
 </div>
 
 <script type="module">
-import * as THREE from '/vendor/three.module.js';
+import * as THREE from './vendor/three.module.js';
 (() => {
   const $ = id => document.getElementById(id);
   const stage = $('stage');
@@ -149,7 +149,7 @@ import * as THREE from '/vendor/three.module.js';
   const disp = new Map(); // id -> quãng đường đang hiển thị (làm mượt)
   const cam = { d: 0, x: 0, y: 0, h: 0, ready: false };
 
-  const es = new EventSource('/api/stream');
+  const es = new EventSource('api/stream');
   es.onmessage = e => {
     const first = !S; S = JSON.parse(e.data); lastMsg = performance.now();
     if (first || S.lapLength !== L) buildTrack(S.lapLength);
