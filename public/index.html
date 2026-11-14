@@ -92,7 +92,7 @@ import * as THREE from './vendor/three.module.js';
   const $ = id => document.getElementById(id);
   const stage = $('stage');
   function fit() {
-    const s = Math.min(innerWidth / 1080, innerHeight / 1920);
+    const box = stage.parentElement, s = Math.min(box.clientWidth / 1080, box.clientHeight / 1920);
     stage.style.transform = `scale(${s}) translateX(-50%)`;
   }
   addEventListener('resize', fit); fit();
@@ -338,8 +338,8 @@ import * as THREE from './vendor/three.module.js';
     const ring = add(G.ring, M.ring, 0, 5, 0); ring.rotation.x = Math.PI / 2; ring.visible = false;
     const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 112;
     const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace;
-    const tag = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
-    tag.scale.set(26, 5.7, 1); tag.position.y = 11.5; tag.renderOrder = 10; g.add(tag);
+    const tag = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true, sizeAttenuation: false }));
+    tag.scale.set(0.34, 0.074, 1); tag.position.y = 11.5; tag.renderOrder = 10; g.add(tag);
     scene.add(g);
     return { g, paint, flame, flameMat, ring, canvas, tex, tag, label: '' };
   }
@@ -381,7 +381,7 @@ import * as THREE from './vendor/three.module.js';
       if (boost) { const k = (rocket ? 1.9 : 1) * (0.85 + Math.random() * 0.4); o.flame.scale.set(rocket ? 1.4 : 1, k, rocket ? 1.4 : 1); o.flame.position.x = -6.5 - 4.5 * k; o.flameMat.color.set(rocket ? 0xff7a2e : 0xffd23f); }
       o.paint.emissive.set(boost ? 0x4a3800 : 0x000000);
       o.ring.visible = c.fx.includes('slow'); o.ring.rotation.z = now / 200;
-      setLabel(o, c); o.tag.visible = S.phase !== 'podium';
+      setLabel(o, c); o.tag.visible = S.phase !== 'podium' && o.g.position.distanceTo(camera.position) < 260;
     }
 
     // camera: bám nhóm đầu, chuyển sang xe vừa nhận quà lớn, quay quanh người thắng lúc trao giải

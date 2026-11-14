@@ -1,0 +1,747 @@
+<title>Đua Xe LIVE</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700;800&display=swap">
+<style>
+/* Sân khấu cố định 1080×1920 (khổ dọc TikTok), co giãn theo cửa sổ. Ba tầng: bảng trên, đường đua giữa, thành tích dưới. */
+:root {
+  --bg: #0b0e17; --panel: #131827; --line: #262d44;
+  --ink: #f3f5fb; --dim: #8e98b5; --hot: #ffd23f; --go: #3ee08f; --warn: #ff4d5e; --ice: #6fd6ff;
+  --font: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; background: #000; overflow: hidden; }
+body { font-family: var(--font); color: var(--ink); }
+#stage { position: absolute; left: 50%; top: 0; width: 1080px; height: 1920px; transform-origin: 0 0; background: var(--bg); overflow: hidden; }
+h2 { margin: 0 0 10px; font-size: 30px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--hot); }
+
+#top { position: absolute; inset: 0 0 auto 0; height: 520px; padding: 24px 28px; display: grid; grid-template-columns: 1fr 330px; gap: 24px; }
+#rank { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 58px; gap: 8px 14px; align-content: start; }
+.row { display: flex; align-items: center; gap: 12px; background: var(--panel); border-radius: 10px; padding: 0 14px; font-size: 32px; font-weight: 700; min-width: 0; border-left: 10px solid var(--c, #888); }
+.row .pos { width: 34px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.row .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row.fx { box-shadow: inset 0 0 0 3px var(--hot); }
+.row.fin .pos { color: var(--go); }
+#side { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+#mini { width: 300px; height: 300px; }
+#lap { font-size: 46px; font-weight: 800; }
+#clock { font-size: 40px; font-weight: 700; color: var(--dim); font-variant-numeric: tabular-nums; }
+#hint { position: absolute; left: 0; right: 0; top: 452px; height: 68px; display: flex; align-items: center; justify-content: center; font-size: 42px; font-weight: 800; background: var(--hot); color: #14110a; letter-spacing: .02em; }
+
+#mid { position: absolute; left: 0; top: 520px; width: 1080px; height: 820px; }
+#view { position: absolute; inset: 0; width: 1080px; height: 820px; display: block; }
+#gifts { position: absolute; right: 14px; top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.gift { background: rgba(11,14,23,.82); border-radius: 10px; padding: 6px 14px; text-align: right; line-height: 1.05; }
+.gift b { display: block; font-size: 30px; font-weight: 800; }
+.gift span { font-size: 23px; color: var(--hot); font-weight: 700; }
+#feed { position: absolute; left: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; max-width: 760px; }
+.msg { background: rgba(11,14,23,.85); border-radius: 10px; padding: 5px 14px; font-size: 30px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.msg.gift, .msg.follow { color: var(--hot); } .msg.win { color: var(--go); } .msg.join { color: var(--ice); }
+#banner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none; text-shadow: 0 4px 0 rgba(0,0,0,.55), 0 0 30px rgba(0,0,0,.6); }
+#big { font-size: 230px; font-weight: 800; line-height: .9; }
+#sub { font-size: 54px; font-weight: 800; max-width: 900px; }
+#podium { display: flex; flex-direction: column; gap: 10px; font-size: 58px; font-weight: 800; }
+#podium div:first-child { font-size: 84px; color: var(--hot); }
+
+#bottom { position: absolute; left: 0; right: 0; top: 1340px; bottom: 0; padding: 24px 28px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; gap: 14px 24px; }
+#queue { grid-column: 1 / 3; font-size: 30px; font-weight: 700; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tbl div { display: flex; gap: 12px; font-size: 30px; font-weight: 700; padding: 5px 0; border-bottom: 2px solid var(--line); }
+.tbl .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tbl .val { color: var(--hot); font-variant-numeric: tabular-nums; }
+.tbl .empty { color: var(--dim); border: 0; font-weight: 500; }
+#lost { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.8); font-size: 54px; font-weight: 800; text-align: center; padding: 60px; }
+[hidden] { display: none !important; }
+
+:root { color-scheme: dark; }
+#demo { display: flex; height: 100%; }
+#frame { position: relative; flex: 1; min-width: 0; min-height: 0; overflow: hidden; background: #000; }
+#panel { width: 310px; flex: none; overflow: auto; background: var(--panel); color: var(--ink); border-left: 1px solid var(--line);
+  padding: 18px 16px; display: flex; flex-direction: column; gap: 14px; font: 15px/1.45 system-ui, "Segoe UI", sans-serif; }
+#panel h1 { margin: 0; font: 800 26px var(--font); letter-spacing: .04em; text-transform: uppercase; color: var(--hot); }
+#panel p { margin: 0; color: var(--dim); font-size: 13.5px; }
+#panel label { display: block; font-size: 13px; color: var(--dim); margin-bottom: 4px; }
+#panel .btns { display: flex; flex-wrap: wrap; gap: 8px; }
+#panel button { font: 600 14px system-ui, sans-serif; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+#panel button:hover { border-color: var(--hot); }
+#panel button:focus-visible, #panel input:focus-visible { outline: 2px solid var(--hot); outline-offset: 2px; }
+#panel input[type=text] { font: inherit; width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+#panel .check { display: flex; gap: 8px; align-items: center; color: var(--ink); font-size: 15px; margin: 0; }
+@media (max-width: 760px) {
+  #demo { flex-direction: column; }
+  #panel { width: auto; max-height: 38%; border-left: 0; border-top: 1px solid var(--line); gap: 10px;
+    padding-block: 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  #panel p { display: none; }
+}
+</style>
+<div id="demo">
+  <div id="frame"><div id="stage">
+  <div id="top">
+    <div>
+      <h2>Thứ hạng · Vòng đua <span id="round">1</span></h2>
+      <div id="rank"></div>
+    </div>
+    <div id="side">
+      <canvas id="mini" width="300" height="300"></canvas>
+      <div id="lap">VÒNG 1/2</div>
+      <div id="clock">0:00.0</div>
+    </div>
+    <div id="hint"></div>
+  </div>
+
+  <div id="mid">
+    <canvas id="view" width="1080" height="820"></canvas>
+    <div id="gifts"></div>
+    <div id="feed"></div>
+    <div id="banner"><div id="big"></div><div id="sub"></div><div id="podium"></div></div>
+  </div>
+
+  <div id="bottom">
+    <div id="queue"></div>
+    <div><h2>Top chiến thắng</h2><div class="tbl" id="wins"></div></div>
+    <div><h2>Thời gian tốt nhất</h2><div class="tbl" id="best"></div></div>
+  </div>
+  <div id="lost" hidden>Mất kết nối với máy chủ game.<br>Hãy chạy lại: node server.js</div>
+</div>
+  </div>
+<aside id="panel">
+  <h1>Bản thử trên web</h1>
+  <p>Game chạy ngay trong trình duyệt với người xem giả lập. Bản này không kết nối TikTok.</p>
+  <label class="check" for="dAuto"><input id="dAuto" type="checkbox" checked> Tự tạo người xem và quà</label>
+  <div class="btns">
+    <button id="dCrowd" type="button">Thêm 5 người xem</button>
+    <button id="dStart" type="button">Xuất phát ngay</button>
+  </div>
+  <div>
+    <label for="dWho">Tên của bạn trong game</label>
+    <input id="dWho" type="text" value="ban_choi" maxlength="18">
+  </div>
+  <div class="btns">
+    <button id="dJoin" type="button">Bình luận “1”</button>
+    <button id="dLike" type="button">Thả 10 tim</button>
+    <button id="dFollow" type="button">Follow</button>
+  </div>
+  <div>
+    <label>Tặng quà cho xe của bạn</label>
+    <div class="btns" id="dGifts"></div>
+  </div>
+</aside>
+</div>
+<script>
+// Luật chơi và trạng thái của game. Chạy được cả trên máy chủ (Node.js) lẫn trong trình duyệt (bản thử trên web).
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.createEngine = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+    const COLORS = ['#ff4d5e', '#ffb02e', '#ffe14d', '#7be04a', '#27d3a2', '#35c9ff',
+      '#4f8dff', '#9b6bff', '#e86bff', '#ff7ac0', '#f2f2f2', '#ff8a3d'];
+    const BOT_NAMES = ['Máy Sấm', 'Máy Gió', 'Máy Lửa', 'Máy Mây', 'Máy Sóng', 'Máy Núi',
+      'Máy Sao', 'Máy Trăng', 'Máy Mưa', 'Máy Cát', 'Máy Băng', 'Máy Nắng'];
+
+
+  return function createEngine(cfg, host) {
+    host = host || {};
+    const stats = host.stats || {};
+    const saveStats = () => { if (host.saveStats) host.saveStats(stats); };
+
+    const game = {
+      phase: 'lobby', timer: cfg.lobbySeconds, raceTime: 0, round: 1,
+      cars: [], queue: [], feed: [], results: [],
+      focus: null, focusUntil: 0, feedSeq: 0, endAt: 0
+    };
+
+    // ---------- tiện ích ----------
+    function cleanName(raw) {
+      let s = String(raw == null ? '' : raw).replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 18);
+      const low = s.toLowerCase();
+      if (!s || cfg.bannedWords.some(w => low.includes(w))) s = 'Khách ' + Math.floor(100 + Math.random() * 900);
+      return s;
+    }
+    function pushFeed(text, kind) {
+      game.feed.push({ n: ++game.feedSeq, text, kind: kind || 'info' });
+      if (game.feed.length > 6) game.feed.shift();
+    }
+    const findCar = id => game.cars.find(c => c.id === id);
+    const realCars = () => game.cars.filter(c => !c.bot);
+
+    function makeCar(id, name, bot) {
+      const i = game.cars.length;
+      return {
+        id, name, bot: !!bot, color: COLORS[i % COLORS.length], lane: i % 4,
+        dist: -8 - Math.floor(i / 4) * 16, speed: 0, form: 0, formT: 0,
+        fx: { turbo: 0, super: 0, rocket: 0, slow: 0 },
+        finished: false, time: 0, place: 0, active: true
+      };
+    }
+
+    function applyEffect(car, effect, count) {
+      const def = cfg.effects[effect];
+      if (!def || car.finished) return;
+      const dur = Math.min(def.seconds * Math.max(1, count), cfg.maxEffectSeconds);
+      const add = (c, key, v) => { c.fx[key] = Math.min(c.fx[key] + v, cfg.maxEffectSeconds); };
+      if (effect === 'storm') {
+        for (const o of game.cars) if (o !== car && !o.finished && o.dist > car.dist) add(o, 'slow', def.seconds);
+        add(car, 'super', dur);
+      } else add(car, effect, dur);
+    }
+
+    // Trả về xe hoặc mục hàng chờ của người xem; tạo mới nếu chưa có.
+    function join(id, name) {
+      const car = findCar(id);
+      if (car) { car.active = true; return { car }; }
+      let q = game.queue.find(e => e.id === id);
+      if (q) return { queued: q };
+      if (game.phase === 'lobby' && realCars().length < cfg.maxCars) {
+        const c = makeCar(id, name, false);
+        game.cars.push(c);
+        pushFeed(name + ' vào đua', 'join');
+        return { car: c };
+      }
+      if (game.queue.length >= 60) return {};
+      q = { id, name, pending: [] };
+      game.queue.push(q);
+      pushFeed(name + ' xếp hàng cho vòng sau', 'join');
+      return { queued: q };
+    }
+
+    function giftDef(name, coins) {
+      const exact = cfg.gifts.find(g => g.name.toLowerCase() === String(name || '').toLowerCase());
+      if (exact) return exact;
+      let best = null;
+      for (const g of cfg.gifts) if (g.coins <= coins && (!best || g.coins > best.coins)) best = g;
+      return best || cfg.gifts[0];
+    }
+
+    // ---------- sự kiện từ người xem (cầu nối TikTok hoặc giả lập) ----------
+    function handleEvent(ev) {
+      if (!ev || typeof ev !== 'object') return;
+      const id = String(ev.user || ev.name || '').slice(0, 40);
+      if (!id) return;
+      const name = cleanName(ev.name || ev.user);
+      const count = Math.max(1, Math.min(9999, Math.floor(Number(ev.count) || 1)));
+
+      if (ev.type === 'comment') {
+        const text = String(ev.text || '').trim().toLowerCase();
+        if (text === cfg.joinKeyword.toLowerCase()) join(id, name);
+        else { const c = findCar(id); if (c) c.active = true; }
+      } else if (ev.type === 'like') {
+        const c = findCar(id);
+        if (c) {
+          c.active = true;
+          if (game.phase === 'race' && !c.finished) c.fx.turbo = Math.min(c.fx.turbo + cfg.likeTurboSeconds * count, 2);
+        }
+      } else if (ev.type === 'follow') {
+        const r = join(id, name);
+        if (r.car) applyEffect(r.car, 'turbo', 1);
+        else if (r.queued) r.queued.pending.push({ effect: 'turbo', count: 1 });
+        pushFeed(name + ' đã follow → ' + cfg.effects.turbo.label, 'follow');
+      } else if (ev.type === 'gift') {
+        const coins = Math.max(0, Number(ev.coins) || 0);
+        const g = giftDef(ev.gift, coins);
+        const r = join(id, name);
+        if (r.car) {
+          applyEffect(r.car, g.effect, count);
+          if ((coins || g.coins) * count >= cfg.focusMinCoins) { game.focus = r.car.id; game.focusUntil = Date.now() + 4000; }
+        } else if (r.queued) r.queued.pending.push({ effect: g.effect, count });
+        pushFeed(name + ' tặng ' + (ev.gift || g.name) + (count > 1 ? ' ×' + count : '') + ' → ' + cfg.effects[g.effect].label, 'gift');
+      }
+    }
+
+    // ---------- vòng lặp game ----------
+    function startCountdown() {
+      let b = 0;
+      while (game.cars.length < cfg.minCars) {
+        const used = new Set(game.cars.map(c => c.name));
+        const nm = BOT_NAMES.find(n => !used.has(n)) || 'Máy ' + (++b);
+        game.cars.push(makeCar('bot:' + nm, nm, true));
+      }
+      game.phase = 'countdown'; game.timer = 3;
+    }
+
+    function ranking() {
+      return game.cars.slice().sort((a, b) => {
+        if (a.finished && b.finished) return a.place - b.place;
+        if (a.finished !== b.finished) return a.finished ? -1 : 1;
+        return b.dist - a.dist;
+      });
+    }
+
+    function endRace() {
+      game.results = ranking().slice(0, 3).map(c => ({ name: c.name, color: c.color, time: c.finished ? c.time : null }));
+      for (const c of game.cars) {
+        if (c.bot || !c.finished) continue;
+        const s = stats[c.id] || (stats[c.id] = { name: c.name, wins: 0, best: null });
+        s.name = c.name;
+        if (c.place === 1) s.wins++;
+        if (s.best == null || c.time < s.best) s.best = c.time;
+      }
+      saveStats();
+      const w = game.results[0];
+      if (w) pushFeed(w.name + ' thắng vòng ' + game.round, 'win');
+      game.phase = 'podium'; game.timer = cfg.podiumSeconds;
+    }
+
+    function newLobby() {
+      const keep = cfg.keepActivePlayers ? game.cars.filter(c => !c.bot && c.active) : [];
+      game.cars = [];
+      for (const k of keep) { const c = makeCar(k.id, k.name, false); c.active = false; game.cars.push(c); }
+      while (game.queue.length && realCars().length < cfg.maxCars) {
+        const q = game.queue.shift();
+        const c = makeCar(q.id, q.name, false);
+        game.cars.push(c);
+        for (const p of q.pending) applyEffect(c, p.effect, p.count);
+      }
+      game.results = []; game.round++; game.raceTime = 0; game.endAt = 0;
+      game.phase = 'lobby'; game.timer = cfg.lobbySeconds;
+    }
+
+    function tick(dt) {
+      if (game.phase === 'lobby') {
+        game.timer -= dt;
+        if (game.timer <= 0) startCountdown();
+      } else if (game.phase === 'countdown') {
+        game.timer -= dt;
+        if (game.timer <= 0) { game.phase = 'race'; game.raceTime = 0; }
+      } else if (game.phase === 'race') {
+        game.raceTime += dt;
+        const total = cfg.laps * cfg.lapLength;
+        let lead = -Infinity;
+        for (const c of game.cars) if (!c.finished && c.dist > lead) lead = c.dist;
+        let placed = game.cars.filter(c => c.finished).length;
+        for (const c of game.cars) {
+          if (c.finished) { c.speed *= 0.97; c.dist += c.speed * dt; continue; }
+          c.formT -= dt;
+          if (c.formT <= 0) { c.formT = 1.5 + Math.random() * 2; c.formGoal = (Math.random() * 2 - 1) * 0.07; }
+          c.form += ((c.formGoal || 0) - c.form) * Math.min(1, dt * 1.5);
+          let m = 1;
+          for (const k of ['turbo', 'super', 'rocket']) if (c.fx[k] > 0) { m += cfg.effects[k].boost; c.fx[k] = Math.max(0, c.fx[k] - dt); }
+          m = Math.min(m, cfg.maxSpeedMult);
+          if (c.fx.slow > 0) { m *= 1 - cfg.effects.storm.slow; c.fx.slow = Math.max(0, c.fx.slow - dt); }
+          const catchUp = Math.min(cfg.catchUpMax, Math.max(0, lead - c.dist) / cfg.lapLength * 0.4);
+          const target = cfg.baseSpeed * (1 + c.form + catchUp) * m;
+          c.speed += (target - c.speed) * Math.min(1, dt * 3);
+          c.dist += c.speed * dt;
+          if (c.dist >= total) { c.finished = true; c.place = ++placed; c.time = Math.round(game.raceTime * 100) / 100; }
+        }
+        if (placed >= Math.min(3, game.cars.length) && !game.endAt) game.endAt = game.raceTime + 4;
+        if (placed === game.cars.length || (game.endAt && game.raceTime >= game.endAt) || game.raceTime >= cfg.maxRaceSeconds) endRace();
+      } else if (game.phase === 'podium') {
+        for (const c of game.cars) { c.speed *= 0.97; c.dist += c.speed * dt; }
+        game.timer -= dt;
+        if (game.timer <= 0) newLobby();
+      }
+    }
+
+    function snapshot() {
+      const rank = ranking();
+      const list = Object.values(stats);
+      return {
+        phase: game.phase, timer: Math.max(0, game.timer), raceTime: game.raceTime, round: game.round,
+        laps: cfg.laps, lapLength: cfg.lapLength, joinKeyword: cfg.joinKeyword, maxCars: cfg.maxCars,
+        cars: rank.map((c, i) => ({
+          id: c.id, name: c.name, color: c.color, lane: c.lane, d: Math.round(c.dist * 100) / 100,
+          v: Math.round(c.speed * 10) / 10, bot: c.bot, fin: c.finished, time: c.time, rank: i + 1,
+          fx: Object.keys(c.fx).filter(k => c.fx[k] > 0)
+        })),
+        queue: game.queue.slice(0, 6).map(q => q.name), queueLen: game.queue.length,
+        feed: game.feed, results: game.results,
+        tiktok: host.tiktok ? host.tiktok() : { state: 'off', user: '', message: 'Bản thử trên web không kết nối TikTok' },
+        focus: Date.now() < game.focusUntil ? game.focus : null,
+        gifts: cfg.gifts.map(g => ({ name: g.name, coins: g.coins, label: cfg.effects[g.effect].label, effect: g.effect })),
+        topWins: list.filter(s => s.wins > 0).sort((a, b) => b.wins - a.wins).slice(0, 6).map(s => ({ name: s.name, wins: s.wins })),
+        topBest: list.filter(s => s.best != null).sort((a, b) => a.best - b.best).slice(0, 6).map(s => ({ name: s.name, best: s.best }))
+      };
+    }
+
+    function adminAction(a) {
+      if (!a) return;
+      if (a.action === 'start' && game.phase === 'lobby') game.timer = 0;
+      else if (a.action === 'end' && game.phase === 'race') endRace();
+      else if (a.action === 'reset') { game.cars = []; game.queue = []; game.feed = []; game.round = 0; newLobby(); }
+      else if (host.admin && host.admin(a)) return;
+      else if (a.action === 'kick') {
+        game.cars = game.cars.filter(c => c.id !== a.id);
+        game.queue = game.queue.filter(q => q.id !== a.id);
+      }
+    }
+
+    return { handleEvent, tick, snapshot, adminAction };
+  };
+});
+
+</script>
+<script>
+(() => {
+  const CONFIG = {"joinKeyword":"1","laps":2,"lapLength":1000,"baseSpeed":28,"maxCars":12,"minCars":6,"lobbySeconds":15,"podiumSeconds":10,"maxRaceSeconds":180,"keepActivePlayers":true,"maxSpeedMult":2.8,"maxEffectSeconds":20,"catchUpMax":0.1,"likeTurboSeconds":0.15,"focusMinCoins":10,"effects":{"turbo":{"label":"Tăng tốc","boost":0.4,"seconds":3},"super":{"label":"Siêu tốc","boost":0.8,"seconds":4},"rocket":{"label":"Tên lửa","boost":1.5,"seconds":3},"storm":{"label":"Giông bão","slow":0.4,"seconds":4}},"gifts":[{"name":"Rose","coins":1,"effect":"turbo"},{"name":"Perfume","coins":20,"effect":"super"},{"name":"Doughnut","coins":30,"effect":"rocket"},{"name":"Money Gun","coins":500,"effect":"storm"}],"bannedWords":["địt","lồn","cặc","đụ","fuck","sex"]};
+  let stats = {};
+  try { stats = JSON.parse(localStorage.getItem('dxl-stats')) || {}; } catch (e) {}
+  const engine = createEngine(CONFIG, { stats, saveStats: s => { try { localStorage.setItem('dxl-stats', JSON.stringify(s)); } catch (e) {} } });
+
+  // Màn hình game mở "api/stream"; ở bản thử, luồng đó là engine chạy ngay trong trang.
+  window.EventSource = class {
+    constructor() {
+      let last = performance.now();
+      setInterval(() => {
+        const now = performance.now(); let left = Math.min(0.25, (now - last) / 1000); last = now;
+        while (left > 0) { engine.tick(Math.min(0.05, left)); left -= 0.05; }
+        if (this.onmessage) this.onmessage({ data: JSON.stringify(engine.snapshot()) });
+      }, 50);
+    }
+  };
+
+  const $ = id => document.getElementById(id);
+  const NAMES = ['minh_anh', 'tuan.kiet', 'be_na', 'hoang99', 'linh_chi', 'khoa_pug', 'mit_uot', 'bao_ngoc', 'duc_tri', 'thao_my', 'long_vu', 'nhi_nhi', 'gia_huy', 'tram_anh'];
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const who = () => $('dWho').value.trim() || 'ban_choi';
+  const stranger = () => engine.handleEvent({ type: 'comment', user: pick(NAMES) + Math.floor(Math.random() * 90 + 10), text: CONFIG.joinKeyword });
+
+  $('dCrowd').onclick = () => { for (let i = 0; i < 5; i++) stranger(); };
+  $('dStart').onclick = () => engine.adminAction({ action: 'start' });
+  $('dJoin').onclick = () => engine.handleEvent({ type: 'comment', user: who(), text: CONFIG.joinKeyword });
+  $('dLike').onclick = () => engine.handleEvent({ type: 'like', user: who(), count: 10 });
+  $('dFollow').onclick = () => engine.handleEvent({ type: 'follow', user: who() });
+  for (const g of CONFIG.gifts) {
+    const b = document.createElement('button'); b.type = 'button';
+    b.textContent = g.name + ' · ' + g.coins + ' xu'; b.title = CONFIG.effects[g.effect].label;
+    b.onclick = () => engine.handleEvent({ type: 'gift', user: who(), gift: g.name, coins: g.coins, count: 1 });
+    $('dGifts').appendChild(b);
+  }
+
+  for (let i = 0; i < 4; i++) stranger();
+  setInterval(() => {
+    if (!$('dAuto').checked) return;
+    const real = engine.snapshot().cars.filter(c => !c.bot && c.id !== who());
+    const r = Math.random();
+    if (r < 0.2 || !real.length) stranger();
+    else if (r < 0.6) engine.handleEvent({ type: 'like', user: pick(real).id, count: 5 + Math.floor(Math.random() * 20) });
+    else { const g = pick(CONFIG.gifts.slice(0, Math.random() < 0.9 ? 2 : 4)); engine.handleEvent({ type: 'gift', user: pick(real).id, gift: g.name, coins: g.coins, count: pick([1, 1, 1, 5]) }); }
+  }, 1100);
+})();
+</script>
+<script type="module">
+import * as THREE from './vendor/three.module.js';
+(() => {
+  const $ = id => document.getElementById(id);
+  const stage = $('stage');
+  function fit() {
+    const box = stage.parentElement, s = Math.min(box.clientWidth / 1080, box.clientHeight / 1920);
+    stage.style.transform = `scale(${s}) translateX(-50%)`;
+  }
+  addEventListener('resize', fit); fit();
+
+  // ---------- đường đua (chỉ phía hiển thị cần hình dạng; máy chủ chỉ biết quãng đường) ----------
+  const CTRL = [[0,0],[120,-20],[220,10],[260,90],[200,150],[120,130],[60,180],[-40,190],[-100,120],[-70,40]];
+  const LANE = [-13.5, -4.5, 4.5, 13.5];
+  let L = 1000, P = [];
+  function buildTrack(len) {
+    L = len;
+    const raw = [], n = CTRL.length;
+    for (let i = 0; i < n; i++) {
+      const p0 = CTRL[(i - 1 + n) % n], p1 = CTRL[i], p2 = CTRL[(i + 1) % n], p3 = CTRL[(i + 2) % n];
+      for (let k = 0; k < 60; k++) {
+        const t = k / 60, t2 = t * t, t3 = t2 * t;
+        raw.push([0, 1].map(a => 0.5 * (2 * p1[a] + (p2[a] - p0[a]) * t + (2 * p0[a] - 5 * p1[a] + 4 * p2[a] - p3[a]) * t2 + (3 * p1[a] - p0[a] - 3 * p2[a] + p3[a]) * t3)));
+      }
+    }
+    const cum = [0];
+    for (let i = 1; i <= raw.length; i++) { const a = raw[i - 1], b = raw[i % raw.length]; cum.push(cum[i - 1] + Math.hypot(b[0] - a[0], b[1] - a[1])); }
+    const total = cum[raw.length], sc = L / total;
+    P = []; let j = 0;
+    for (let i = 0; i < L; i++) { // một điểm cho mỗi đơn vị quãng đường
+      const s = i / sc;
+      while (cum[j + 1] < s) j++;
+      const a = raw[j], b = raw[(j + 1) % raw.length], f = (s - cum[j]) / (cum[j + 1] - cum[j]);
+      P.push([(a[0] + (b[0] - a[0]) * f) * sc, (a[1] + (b[1] - a[1]) * f) * sc]);
+    }
+    for (let i = 0; i < L; i++) { const a = P[i], b = P[(i + 1) % L]; a[2] = Math.atan2(b[1] - a[1], b[0] - a[0]); }
+    buildScenery(); drawMiniBase(); buildWorld();
+  }
+  function at(d, off) {
+    d = ((d % L) + L) % L;
+    const i = Math.floor(d), f = d - i, a = P[i], b = P[(i + 1) % L];
+    let dh = b[2] - a[2]; dh = Math.atan2(Math.sin(dh), Math.cos(dh));
+    const h = a[2] + dh * f, o = off || 0;
+    return { x: a[0] + (b[0] - a[0]) * f - Math.sin(h) * o, y: a[1] + (b[1] - a[1]) * f + Math.cos(h) * o, h };
+  }
+
+  let trees = [];
+  function buildScenery() {
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    trees = [];
+    for (let n = 0; n < 420 && trees.length < 170; n++) {
+      const p = at(rnd() * L, (rnd() < 0.5 ? -1 : 1) * (34 + rnd() * 110));
+      let ok = true;
+      for (let i = 0; i < L; i += 4) if (Math.hypot(P[i][0] - p.x, P[i][1] - p.y) < 32) { ok = false; break; }
+      if (ok) trees.push({ x: p.x, y: p.y, r: 5 + rnd() * 6, k: rnd() });
+    }
+  }
+
+  // ---------- trạng thái ----------
+  let S = null, lastMsg = 0, frameNo = 0;
+  const disp = new Map(); // id -> quãng đường đang hiển thị (làm mượt)
+  const cam = { d: 0, x: 0, y: 0, h: 0, ready: false };
+
+  const es = new EventSource('api/stream');
+  es.onmessage = e => {
+    const first = !S; S = JSON.parse(e.data); lastMsg = performance.now();
+    if (first || S.lapLength !== L) buildTrack(S.lapLength);
+    for (const c of S.cars) if (!disp.has(c.id)) disp.set(c.id, c.d);
+    for (const id of disp.keys()) if (!S.cars.some(c => c.id === id)) disp.delete(id);
+    if (++frameNo % 4 === 0 || first) renderHud();
+  };
+
+  // ---------- bảng thông tin ----------
+  const fmt = t => { const m = Math.floor(t / 60), s = t - m * 60; return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1); };
+  function rows(el, items, make) {
+    while (el.children.length > items.length) el.lastChild.remove();
+    items.forEach((it, i) => { let r = el.children[i]; if (!r) { r = document.createElement('div'); el.appendChild(r); } make(r, it, i); });
+  }
+  function cell(r, cls, text) {
+    let c = r.querySelector('.' + cls);
+    if (!c) { c = document.createElement('span'); c.className = cls; r.appendChild(c); }
+    if (c.textContent !== text) c.textContent = text;
+  }
+  let feedSeen = 0;
+  function renderHud() {
+    $('round').textContent = S.round;
+    rows($('rank'), S.cars.slice(0, 12), (r, c) => {
+      r.className = 'row' + (c.fx.some(f => f !== 'slow') ? ' fx' : '') + (c.fin ? ' fin' : '');
+      r.style.setProperty('--c', c.color);
+      cell(r, 'pos', String(c.rank)); cell(r, 'nm', c.name);
+    });
+    const lead = S.cars[0];
+    const lap = lead ? Math.min(S.laps, Math.max(1, Math.floor(Math.max(0, lead.d) / S.lapLength) + 1)) : 1;
+    $('lap').textContent = 'VÒNG ' + lap + '/' + S.laps;
+    $('clock').textContent = fmt(S.raceTime);
+    const real = S.cars.filter(c => !c.bot).length;
+    $('hint').textContent = S.phase !== 'lobby'
+      ? 'Bình luận ' + S.joinKeyword + ' để xếp hàng vòng sau'
+      : 'Bình luận ' + S.joinKeyword + ' để vào đua · ' + real + '/' + S.maxCars + ' xe';
+
+    rows($('gifts'), S.gifts, (r, g) => { r.className = 'gift'; if (!r.firstChild) r.innerHTML = '<b></b><span></span>'; r.firstChild.textContent = g.label; r.lastChild.textContent = g.name + ' · ' + g.coins + ' xu'; });
+    const fresh = S.feed.slice(-4);
+    rows($('feed'), fresh, (r, m) => { r.className = 'msg ' + m.kind; if (r.textContent !== m.text) r.textContent = m.text; });
+
+    const big = $('big'), sub = $('sub'), pod = $('podium');
+    big.textContent = ''; sub.textContent = ''; pod.hidden = true;
+    if (S.phase === 'lobby') { sub.textContent = 'Xuất phát sau ' + Math.ceil(S.timer) + ' giây'; }
+    else if (S.phase === 'countdown') { big.textContent = Math.ceil(S.timer); }
+    else if (S.phase === 'race' && S.raceTime < 1) { big.textContent = 'ĐUA!'; }
+    else if (S.phase === 'podium') {
+      pod.hidden = false;
+      rows(pod, S.results, (r, w, i) => { const t = (i + 1) + '. ' + w.name + (w.time != null ? '  ' + fmt(w.time) : ''); if (r.textContent !== t) r.textContent = t; r.style.color = i ? w.color : ''; });
+    }
+
+    $('queue').textContent = S.queueLen ? 'Đang chờ vòng sau (' + S.queueLen + '): ' + S.queue.join(', ') + (S.queueLen > S.queue.length ? '…' : '') : 'Chưa có ai chờ vòng sau';
+    const table = (el, items, val) => {
+      if (!items.length) { el.innerHTML = '<div class="empty">Chưa có dữ liệu</div>'; return; }
+      if (el.querySelector('.empty')) el.innerHTML = '';
+      rows(el, items, (r, it, i) => { cell(r, 'pos', (i + 1) + '.'); cell(r, 'nm', it.name); cell(r, 'val', val(it)); });
+    };
+    table($('wins'), S.topWins, s => s.wins + ' trận');
+    table($('best'), S.topBest, s => fmt(s.best));
+  }
+
+  // ---------- bản đồ nhỏ ----------
+  const mini = $('mini'), mc = mini.getContext('2d');
+  let miniBase = null, mm = null;
+  function drawMiniBase() {
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    for (const p of P) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
+    const sc = 260 / Math.max(x1 - x0, y1 - y0);
+    mm = { sc, ox: 150 - (x0 + x1) / 2 * sc, oy: 150 - (y0 + y1) / 2 * sc };
+    miniBase = document.createElement('canvas'); miniBase.width = miniBase.height = 300;
+    const g = miniBase.getContext('2d');
+    g.lineJoin = 'round'; g.beginPath();
+    P.forEach((p, i) => g[i ? 'lineTo' : 'moveTo'](p[0] * sc + mm.ox, p[1] * sc + mm.oy)); g.closePath();
+    g.strokeStyle = '#3a4466'; g.lineWidth = 16; g.stroke();
+    g.strokeStyle = '#f3f5fb'; g.lineWidth = 3; g.stroke();
+    g.fillStyle = '#ffd23f'; g.fillRect(P[0][0] * sc + mm.ox - 5, P[0][1] * sc + mm.oy - 12, 10, 24);
+  }
+
+  // ---------- cảnh đua 3D ----------
+  const cv = $('view');
+  const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
+  renderer.setPixelRatio(1); renderer.setSize(1080, 820, false);
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x9fd8ff);
+  scene.fog = new THREE.Fog(0xbfe6ff, 260, 1100);
+  const camera = new THREE.PerspectiveCamera(58, 1080 / 820, 1, 3000);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x3d6b45, 1.25));
+  const sun = new THREE.DirectionalLight(0xfff2d6, 1.7); sun.position.set(200, 320, 120); scene.add(sun);
+  let world = null;
+
+  function ribbon(a, b, y, colorAt, keep) {
+    const pos = [], col = [], c = new THREE.Color(), step = 2;
+    const v = (pt, o) => [pt[0] - Math.sin(pt[2]) * o, y, pt[1] + Math.cos(pt[2]) * o];
+    for (let i = 0; i < L; i += step) {
+      if (keep && !keep(i)) continue;
+      const p = P[i], q = P[(i + step) % L];
+      const A = v(p, a), B = v(p, b), C = v(q, b), D = v(q, a);
+      pos.push(...A, ...B, ...C, ...A, ...C, ...D);
+      c.set(colorAt(i)); for (let k = 0; k < 6; k++) col.push(c.r, c.g, c.b);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(new Array(pos.length).fill(0).map((_, i) => i % 3 === 1 ? 1 : 0), 3));
+    return new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+  }
+
+  function textTexture(w, h, draw) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    draw(c.getContext('2d'), w, h);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  }
+
+  function buildWorld() {
+    if (world) scene.remove(world);
+    world = new THREE.Group(); scene.add(world);
+    let mx = 0, mz = 0; for (const p of P) { mx += p[0] / L; mz += p[1] / L; }
+
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(5000, 5000), new THREE.MeshLambertMaterial({ color: 0x46a35c }));
+    ground.rotation.x = -Math.PI / 2; ground.position.set(mx, -0.1, mz); world.add(ground);
+    world.add(ribbon(-36, 36, 0.05, () => 0x378c4c));
+    world.add(ribbon(-20, 20, 0.15, () => 0x30343f));
+    world.add(ribbon(-23, -20, 0.25, i => Math.floor(i / 6) % 2 ? 0xff4d5e : 0xf3f1e8));
+    world.add(ribbon(20, 23, 0.25, i => Math.floor(i / 6) % 2 ? 0xff4d5e : 0xf3f1e8));
+    for (const o of [-9, 0, 9]) world.add(ribbon(o - 0.35, o + 0.35, 0.3, () => 0xffffff, i => i % 12 < 5));
+    for (let k = 0; k < 10; k++) world.add(ribbon(-20 + k * 4, -16 + k * 4, 0.32, i => (i / 2 + k) % 2 ? 0xf3f5fb : 0x11131b, i => i < 4));
+
+    // cổng xuất phát
+    const s0 = at(2), gate = new THREE.Group();
+    gate.position.set(s0.x, 0, s0.y); gate.rotation.y = -s0.h;
+    const metal = new THREE.MeshLambertMaterial({ color: 0x1b2030 });
+    for (const z of [-25, 25]) { const post = new THREE.Mesh(new THREE.BoxGeometry(2.4, 28, 2.4), metal); post.position.set(0, 14, z); gate.add(post); }
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(2, 7, 52), metal); beam.position.y = 25; gate.add(beam);
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(48, 5.6), new THREE.MeshBasicMaterial({
+      map: textTexture(1024, 120, (g, w, h) => {
+        g.fillStyle = '#ffd23f'; g.fillRect(0, 0, w, h);
+        g.fillStyle = '#14110a'; g.font = '800 92px "Barlow Condensed", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText('XUẤT PHÁT  ·  VỀ ĐÍCH', w / 2, h / 2 + 6);
+      })
+    }));
+    sign.rotation.y = -Math.PI / 2; sign.position.set(-1.1, 25, 0); gate.add(sign);
+    world.add(gate);
+
+    // cây
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), col = new THREE.Color();
+    const crowns = new THREE.InstancedMesh(new THREE.ConeGeometry(1, 1, 7), new THREE.MeshLambertMaterial({ flatShading: true }), trees.length);
+    const trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.5, 0.6, 1, 6), new THREE.MeshLambertMaterial({ color: 0x6b4a2e }), trees.length);
+    trees.forEach((t, i) => {
+      const r = t.r * 1.15, h = t.r * 3.2;
+      m4.compose(new THREE.Vector3(t.x, 3 + h / 2, t.y), q, new THREE.Vector3(r, h, r)); crowns.setMatrixAt(i, m4);
+      crowns.setColorAt(i, col.set(t.k < 0.33 ? 0x1f6b3a : t.k < 0.66 ? 0x2a8048 : 0x3b9455));
+      m4.compose(new THREE.Vector3(t.x, 1.5, t.y), q, new THREE.Vector3(r * 0.3, 3.4, r * 0.3)); trunks.setMatrixAt(i, m4);
+    });
+    world.add(crowns, trunks);
+
+    // dãy núi xa
+    const rock = new THREE.MeshLambertMaterial({ color: 0x7f95b8, flatShading: true });
+    for (let i = 0; i < 16; i++) {
+      const a = i / 16 * Math.PI * 2 + (i % 3) * 0.1, d = 850 + (i * 97) % 300, h = 200 + (i * 53) % 220;
+      const m = new THREE.Mesh(new THREE.ConeGeometry(170 + (i * 31) % 120, h, 6), rock);
+      m.position.set(mx + Math.cos(a) * d, h / 2 - 2, mz + Math.sin(a) * d); m.rotation.y = i; world.add(m);
+    }
+  }
+
+  // ---------- xe ----------
+  const car3d = new Map();
+  const G = {
+    body: new THREE.BoxGeometry(13, 2.4, 6.4), nose: new THREE.BoxGeometry(4, 1.4, 6), cabin: new THREE.BoxGeometry(5.6, 2.2, 5.2),
+    wheel: new THREE.CylinderGeometry(1.6, 1.6, 1.3, 12), wing: new THREE.BoxGeometry(1.4, 0.5, 6.6), light: new THREE.BoxGeometry(0.3, 0.8, 1.4),
+    flame: new THREE.ConeGeometry(1.7, 9, 8), ring: new THREE.TorusGeometry(8, 0.5, 6, 24), shadow: new THREE.CircleGeometry(1, 20)
+  };
+  const M = {
+    glass: new THREE.MeshLambertMaterial({ color: 0x141b2b }), tyre: new THREE.MeshLambertMaterial({ color: 0x0e1016 }),
+    lamp: new THREE.MeshBasicMaterial({ color: 0xfff6c9 }), tail: new THREE.MeshBasicMaterial({ color: 0xff3344 }),
+    ring: new THREE.MeshBasicMaterial({ color: 0x6fd6ff }), shadow: new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false })
+  };
+  function makeCar(c) {
+    const g = new THREE.Group(), paint = new THREE.MeshLambertMaterial({ color: c.color });
+    const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); g.add(m); return m; };
+    add(G.body, paint, 0, 2.3, 0); add(G.nose, paint, 5.2, 1.9, 0); add(G.cabin, M.glass, -1, 4.4, 0);
+    add(G.wing, paint, -6.2, 4.3, 0);
+    for (const [x, z] of [[4, 3.3], [4, -3.3], [-4, 3.3], [-4, -3.3]]) add(G.wheel, M.tyre, x, 1.6, z).rotation.x = Math.PI / 2;
+    for (const z of [2.2, -2.2]) { add(G.light, M.lamp, 7.25, 2.2, z); add(G.light, M.tail, -6.55, 2.6, z); }
+    const sh = add(G.shadow, M.shadow, 0, 0.4, 0); sh.rotation.x = -Math.PI / 2; sh.scale.set(8.5, 4.6, 1);
+    const flameMat = new THREE.MeshBasicMaterial({ color: 0xffd23f });
+    const flame = add(G.flame, flameMat, -11, 2.3, 0); flame.rotation.z = Math.PI / 2; flame.visible = false;
+    const ring = add(G.ring, M.ring, 0, 5, 0); ring.rotation.x = Math.PI / 2; ring.visible = false;
+    const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 112;
+    const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace;
+    const tag = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true, sizeAttenuation: false }));
+    tag.scale.set(0.34, 0.074, 1); tag.position.y = 11.5; tag.renderOrder = 10; g.add(tag);
+    scene.add(g);
+    return { g, paint, flame, flameMat, ring, canvas, tex, tag, label: '' };
+  }
+  function setLabel(o, c) {
+    const label = '#' + c.rank + ' ' + c.name;
+    if (label === o.label) return; o.label = label;
+    const g = o.canvas.getContext('2d'); g.clearRect(0, 0, 512, 112);
+    g.font = '700 64px "Barlow Condensed", Arial, sans-serif';
+    const w = Math.min(500, g.measureText(label).width + 44), x = 256 - w / 2;
+    g.fillStyle = 'rgba(11,14,23,.85)'; g.beginPath(); g.roundRect(x, 8, w, 92, 18); g.fill();
+    g.fillStyle = c.color; g.fillRect(x + 14, 86, w - 28, 8);
+    g.fillStyle = '#f3f5fb'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(label, 256, 48, 470);
+    o.tex.needsUpdate = true;
+  }
+
+  // Vẽ lại nhãn tên khi phông chữ tải xong.
+  document.fonts.load('700 64px "Barlow Condensed"').then(() => { for (const o of car3d.values()) o.label = ''; }).catch(() => {});
+
+  const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), wantPos = new THREE.Vector3(), wantLook = new THREE.Vector3();
+  let prev = performance.now();
+
+  function frame(now) {
+    requestAnimationFrame(frame);
+    const dt = Math.min(0.1, (now - prev) / 1000); prev = now;
+    $('lost').hidden = !S || now - lastMsg < 3000;
+    if (!S || !P.length || !world) return;
+
+    for (const c of S.cars) {
+      const cur = disp.get(c.id), target = c.d + c.v * Math.min(0.15, (now - lastMsg) / 1000);
+      disp.set(c.id, Math.abs(target - cur) > 60 ? target : cur + (target - cur) * Math.min(1, dt * 12));
+    }
+    for (const [id, o] of car3d) if (!disp.has(id)) { scene.remove(o.g); o.tex.dispose(); o.paint.dispose(); o.flameMat.dispose(); o.tag.material.dispose(); car3d.delete(id); }
+    for (const c of S.cars) {
+      let o = car3d.get(c.id); if (!o) { o = makeCar(c); car3d.set(c.id, o); }
+      const p = at(disp.get(c.id), LANE[c.lane]);
+      o.g.position.set(p.x, 0, p.y); o.g.rotation.y = -p.h;
+      const boost = c.fx.some(f => f !== 'slow'), rocket = c.fx.includes('rocket');
+      o.flame.visible = boost;
+      if (boost) { const k = (rocket ? 1.9 : 1) * (0.85 + Math.random() * 0.4); o.flame.scale.set(rocket ? 1.4 : 1, k, rocket ? 1.4 : 1); o.flame.position.x = -6.5 - 4.5 * k; o.flameMat.color.set(rocket ? 0xff7a2e : 0xffd23f); }
+      o.paint.emissive.set(boost ? 0x4a3800 : 0x000000);
+      o.ring.visible = c.fx.includes('slow'); o.ring.rotation.z = now / 200;
+      setLabel(o, c); o.tag.visible = S.phase !== 'podium' && o.g.position.distanceTo(camera.position) < 260;
+    }
+
+    // camera: bám nhóm đầu, chuyển sang xe vừa nhận quà lớn, quay quanh người thắng lúc trao giải
+    const alive = S.cars.filter(c => !c.fin);
+    const focus = S.cars.find(c => c.id === S.focus) || alive[Math.min(2, alive.length - 1)] || S.cars[0];
+    if (S.phase === 'podium' && S.cars[0]) {
+      const w = at(disp.get(S.cars[0].id), LANE[S.cars[0].lane]), a = now / 3500;
+      wantPos.set(w.x + Math.cos(a) * 52, 26, w.y + Math.sin(a) * 52); wantLook.set(w.x, 2, w.y);
+    } else if (focus) {
+      const fd = disp.get(focus.id);
+      if (!cam.ready || Math.abs(fd - cam.d) > 400) { cam.d = fd; cam.h = at(fd).h; cam.ready = true; }
+      cam.d += (fd - cam.d) * Math.min(1, dt * 3);
+      const p = at(cam.d);
+      let dh = p.h - cam.h; dh = Math.atan2(Math.sin(dh), Math.cos(dh)); cam.h += dh * Math.min(1, dt * 3.5);
+      const dx = Math.cos(cam.h), dz = Math.sin(cam.h);
+      wantPos.set(p.x - dx * 40, 21, p.y - dz * 40); wantLook.set(p.x + dx * 24, 2, p.y + dz * 24);
+    }
+    const snap = camPos.distanceTo(wantPos) > 350 || camPos.lengthSq() === 0, k = snap ? 1 : Math.min(1, dt * 6);
+    camPos.lerp(wantPos, k); camLook.lerp(wantLook, k);
+    camera.position.copy(camPos); camera.lookAt(camLook);
+    renderer.render(scene, camera);
+
+    // bản đồ nhỏ
+    mc.clearRect(0, 0, 300, 300); mc.drawImage(miniBase, 0, 0);
+    for (let i = S.cars.length - 1; i >= 0; i--) {
+      const c = S.cars[i], p = at(disp.get(c.id));
+      mc.fillStyle = c.color; mc.strokeStyle = '#0b0e17'; mc.lineWidth = 2;
+      mc.beginPath(); mc.arc(p.x * mm.sc + mm.ox, p.y * mm.sc + mm.oy, c.rank === 1 ? 10 : 7, 0, 7); mc.fill(); mc.stroke();
+    }
+  }
+  requestAnimationFrame(frame);
+})();
+</script>

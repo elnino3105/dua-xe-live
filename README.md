@@ -47,7 +47,9 @@ Mọi con số nằm trong `config.json`: giá quà và hiệu ứng, số vòng
 
 ## Cấu trúc
 
-- `server.js` — luật chơi, trạng thái, lưu thành tích
+- `engine.js` — luật chơi và trạng thái (dùng chung cho máy chủ và bản thử trên web)
+- `server.js` — máy chủ, lưu thành tích
+- `tools/build-web.js` — tạo bản thử chạy trong trình duyệt, ghi ra `web/`
 - `tiktok.js` — cầu nối TikTok
 - `public/index.html` — màn hình game 3D
 - `public/admin.html` — bảng điều khiển
